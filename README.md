@@ -12,6 +12,7 @@ trusted-host = pypi.douban.com
 
 
 ####其他站点信息
+
     阿里云 http://mirrors.aliyun.com/pypi/simple/
     
     中国科技大学 https://pypi.mirrors.ustc.edu.cn/simple/
@@ -22,6 +23,7 @@ trusted-host = pypi.douban.com
 
 
 ##代理设置
+
   python -m pip --proxy=http://username:password@host:port install xxxx
   
   

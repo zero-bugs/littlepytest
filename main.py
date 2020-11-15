@@ -5,5 +5,9 @@ from func.kc_scrawl import KcScrawlImpl
 from models.pic_attr import PicAttr
 
 if __name__ == "__main__":
+    # 第一阶段api提取数据
     kcScrawlImpl = KcScrawlImpl()
-    kcScrawlImpl.scrawPicUseApiAll()
+    # kcScrawlImpl.scrawPicUseApiAll()
+
+    #下载图片
+    kcScrawlImpl.downloadPicFromDb()

@@ -105,6 +105,16 @@ class SqliteManager:
             self.conn.rollback()
             return False
 
+    def selectImgs(self, limit=100,offset=0):
+        try:
+            self.cur.execute("select * from fullimgtable limit ? offset ? ", (limit, offset,))
+            return self.cur.fetchall()
+        except Exception as err:
+            print(err)
+            self.conn.rollback()
+            return None
+
+
     def close(self):
         self.cur.close()
         self.conn.close()

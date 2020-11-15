@@ -47,7 +47,7 @@ class KcScrawlImpl:
         else:
             return sqliteManager.batchInsertImg(pics)
 
-    def httpRetryExecutor(self, url):
+    def httpRetryExecutor(self, url, headers: dict):
         retry = False
         for num in range(0, 5):
             if retry:
@@ -55,7 +55,7 @@ class KcScrawlImpl:
             try:
                 if ProxyConstant.proxySwitch:
                     return requests.get(
-                        url, proxies=ProxyConstant.proxies, verify=True, timeout=600
+                        url, proxies=ProxyConstant.proxies, verify=True, timeout=600, headers=headers
                     )
                 else:
                     return requests.get(url, verify=True, timeout=30)
@@ -70,7 +70,6 @@ class KcScrawlImpl:
                     print("failed at last, please try by hands.")
 
                 continue
-
 
     def scrawPicUseApiAll(self):
         currentPage = 1139
@@ -96,3 +95,28 @@ class KcScrawlImpl:
                     % (currentPage, totalPage)
                 )
                 break
+
+    def downloadPicFromDb(self):
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+            'referer': 'https://konachan.com/post'
+        }
+
+        limit = 100
+        offset = 0
+        while True:
+            val = sqliteManager.selectImgs(limit=limit, offset=offset)
+            offset = limit
+            if len(val) == 0:
+                break
+            else:
+                for pic in val:
+                    response = self.httpRetryExecutor(pic[7], headers)
+
+                    suffix = ".jpg"
+                    pos = pic[7].rfind('.')
+                    if pos != -1:
+                        suffix = pic[7][pos:]
+                    filename = "%s/%d%s" % (CommonConstant.picOutputPath, pic[0], suffix)
+                    with open(filename, 'wb') as f:
+                        f.write(response.content)

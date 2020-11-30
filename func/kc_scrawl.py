@@ -1,7 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
 import json
+import os
+import threading
 import time
 import requests
 
@@ -55,10 +57,10 @@ class KcScrawlImpl:
             try:
                 if ProxyConstant.proxySwitch:
                     return requests.get(
-                        url, proxies=ProxyConstant.proxies, verify=True, timeout=600, headers=headers
+                        url, proxies=ProxyConstant.proxies, verify=True, timeout=300, headers=headers
                     )
                 else:
-                    return requests.get(url, verify=True, timeout=30)
+                    return requests.get(url, verify=True, timeout=300)
             except Exception as err:
                 print("http request failed, retry url:" + url)
                 print(err)
@@ -96,27 +98,48 @@ class KcScrawlImpl:
                 )
                 break
 
-    def downloadPicFromDb(self):
+    def downloadPicFromDb(self, start=0, maxCount=100000, downloadPath=CommonConstant.picOutputPath):
         headers = {
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/86.0.4240.198 Safari/537.36',
             'referer': 'https://konachan.com/post'
         }
 
         limit = 100
-        offset = 0
+        offset = start
         while True:
+            if offset >= maxCount:
+                print("done all task {0}".format(offset))
+                break
+
             val = sqliteManager.selectImgs(limit=limit, offset=offset)
-            offset = limit
-            if len(val) == 0:
+            offset += limit
+            if val is None or len(val) == 0:
                 break
             else:
                 for pic in val:
-                    response = self.httpRetryExecutor(pic[7], headers)
-
                     suffix = ".jpg"
                     pos = pic[7].rfind('.')
                     if pos != -1:
                         suffix = pic[7][pos:]
-                    filename = "%s/%d%s" % (CommonConstant.picOutputPath, pic[0], suffix)
+                    filename = f"{downloadPath}/{pic[0]}{suffix}"
+                    if os.path.exists(filename):
+                        print("file id:{0} has exist".format(pic[0]))
+                        continue
+
+                    print(
+                        "{0}-begin to download,id:{1},time:{2},url:{3}".format(threading.current_thread().name, pic[0],
+                                                                               time.strftime("%Y-%m-%d-%H_%M_%S",
+                                                                                             time.localtime()), pic[7]))
+                    response = self.httpRetryExecutor(pic[7], headers)
+                    print("{0}-begin to write,id:{1}, time:{2},path:{3}".format(threading.current_thread().name, pic[0],
+                                                                                time.strftime("%Y-%m-%d-%H_%M_%S",
+                                                                                              time.localtime()),
+                                                                                filename))
+
                     with open(filename, 'wb') as f:
                         f.write(response.content)
+                    print("{}-end to write,id:{},time:{},path:{}".format(threading.current_thread().name, pic[0],
+                                                                         time.strftime("%Y-%m-%d-%H_%M_%S",
+                                                                                       time.localtime()),
+                                                                         filename))

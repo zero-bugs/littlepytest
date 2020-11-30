@@ -1,3 +1,6 @@
+# !/usr/bin/python3
+# -*- coding: UTF-8 -*-
+
 class ProxyConstant:
     proxies = {
         "http": "http://username:password@host:port",

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
 import sqlite3
@@ -13,7 +13,7 @@ class SqliteManager:
 
     def __init__(self, *args, **kwargs):
         # 链接数据库，若数据库不存在则创建
-        self.conn = sqlite3.connect("%s" % CommonConstant.dbLibPath)
+        self.conn = sqlite3.connect("%s" % CommonConstant.dbLibPath, check_same_thread=False)
         # 在内存中创建数据库
         # conn = sqlite3.connect(":memory:")
         # 创建游标对象
@@ -50,6 +50,7 @@ class SqliteManager:
             return False
 
         try:
+            lock.acquire(True)
             self.cur.execute(
                 "insert or ignore into fullimgtable (id,width,height,filesize,score,md5,preview_url,file_url,tags,create_at,creator_id,source) values (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
@@ -73,14 +74,17 @@ class SqliteManager:
             print(err)
             self.conn.rollback()
             return False
+        finally:
+            lock.release()
 
-    def batchInsertImg(self, pic: list[PicAttr]):
+    def batchInsertImg(self, pic: list):
         if pic is None:
             return False
         elif len(pic) == 0:
             return False
         try:
             for p in pic:
+                lock.acquire(True)
                 self.cur.execute(
                     "insert or ignore into fullimgtable (id,width,height,filesize,score,md5,preview_url,file_url,tags,create_at,creator_id,source) values (?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
@@ -104,15 +108,20 @@ class SqliteManager:
             print(err)
             self.conn.rollback()
             return False
+        finally:
+            lock.release()
 
-    def selectImgs(self, limit=100,offset=0):
+    def selectImgs(self, limit=100, offset=0):
         try:
+            lock.acquire(True)
             self.cur.execute("select * from fullimgtable limit ? offset ? ", (limit, offset,))
             return self.cur.fetchall()
         except Exception as err:
             print(err)
             self.conn.rollback()
             return None
+        finally:
+            lock.release()
 
 
     def close(self):
@@ -124,3 +133,4 @@ class SqliteManager:
 
 
 sqliteManager = SqliteManager()
+lock = threading.Lock()

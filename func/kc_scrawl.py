@@ -70,8 +70,8 @@ class KcScrawlImpl:
                 retry = True
                 if num == 4:
                     print("failed at last, please try by hands.")
+                    return None
 
-                continue
 
     def scrawPicUseApiAll(self):
         currentPage = 1139
@@ -105,7 +105,7 @@ class KcScrawlImpl:
             'referer': 'https://konachan.com/post'
         }
 
-        limit = 100
+        limit = 500
         offset = start
         while True:
             if offset >= maxCount:
@@ -124,22 +124,27 @@ class KcScrawlImpl:
                         suffix = pic[7][pos:]
                     filename = f"{downloadPath}/{pic[0]}{suffix}"
                     if os.path.exists(filename):
-                        print("file id:{0} has exist".format(pic[0]))
+                        # print("file id:{0} has exist".format(pic[0]))
                         continue
+                    else:
+                        print("{} offset:{}".format(threading.current_thread().name, offset-limit))
+                        return
 
-                    print(
-                        "{0}-begin to download,id:{1},time:{2},url:{3}".format(threading.current_thread().name, pic[0],
-                                                                               time.strftime("%Y-%m-%d-%H_%M_%S",
-                                                                                             time.localtime()), pic[7]))
-                    response = self.httpRetryExecutor(pic[7], headers)
-                    print("{0}-begin to write,id:{1}, time:{2},path:{3}".format(threading.current_thread().name, pic[0],
-                                                                                time.strftime("%Y-%m-%d-%H_%M_%S",
-                                                                                              time.localtime()),
-                                                                                filename))
-
-                    with open(filename, 'wb') as f:
-                        f.write(response.content)
-                    print("{}-end to write,id:{},time:{},path:{}".format(threading.current_thread().name, pic[0],
-                                                                         time.strftime("%Y-%m-%d-%H_%M_%S",
-                                                                                       time.localtime()),
-                                                                         filename))
+                    # print(
+                    #     "{0}-begin to download,id:{1},time:{2},url:{3}".format(threading.current_thread().name, pic[0],
+                    #                                                            time.strftime("%Y-%m-%d-%H_%M_%S",
+                    #                                                                          time.localtime()), pic[7]))
+                    # response = self.httpRetryExecutor(pic[7], headers)
+                    # print("{0}-begin to write,id:{1}, time:{2},path:{3}".format(threading.current_thread().name, pic[0],
+                    #                                                             time.strftime("%Y-%m-%d-%H_%M_%S",
+                    #                                                                           time.localtime()),
+                    #                                                             filename))
+                    # if response is None:
+                    #     continue
+                    #
+                    # with open(filename, 'wb') as f:
+                    #     f.write(response.content)
+                    # print("{}-end to write,id:{},time:{},path:{}".format(threading.current_thread().name, pic[0],
+                    #                                                      time.strftime("%Y-%m-%d-%H_%M_%S",
+                    #                                                                    time.localtime()),
+                    #                                                      filename))

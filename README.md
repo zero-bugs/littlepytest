@@ -26,4 +26,12 @@ trusted-host = pypi.douban.com
 
   python -m pip --proxy=http://username:password@host:port install xxxx
   
+## 分段下载
+    SecondThread-1 offset:100000
+    ThirdThread-1 offset:70500
+    ForthThread-1 offset:166500
+    FirstThread-1 offset:31500
   
+    FirstThread-1-current offset: 42000
+    ThirdThread-1-current offset: 80500
+    ForthThread-1-current offset: 176000

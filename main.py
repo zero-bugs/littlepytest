@@ -16,36 +16,35 @@ if __name__ == "__main__":
     try:
         # 下载图片
         t1 = threading.Thread(
-            target=kcScrawlImpl.downloadPicFromDb,
-            args=(46500, 50000, f"{CommonConstant.picOutputPath}/1"),
+            target=kcScrawlImpl.scrawPicUseApiAllLatest,
+            args=(1, 100, '2021-04-10 00:00:00'),
             name="FirstThread-1",
         )
         t1.start()
 
         # 下载图片
         t2 = threading.Thread(
-            target=kcScrawlImpl.downloadPicFromDb,
-            args=(133000, 150000, f"{CommonConstant.picOutputPath}/2"),
-            name="SecondThread-1",
+            target=kcScrawlImpl.scrawPicUseApiAllLatest,
+            args=(101, 200, '2021-04-10 00:00:00'),
+            name="FirstThread-2",
         )
         t2.start()
 
-        # 下载图片
-        t3 = threading.Thread(
-            target=kcScrawlImpl.downloadPicFromDb,
-            args=(85000, 100000, f"{CommonConstant.picOutputPath}/3"),
-            name="ThirdThread-1",
-        )
-        t3.start()
-
-        # 下载图片
-        t4 = threading.Thread(
-            target=kcScrawlImpl.downloadPicFromDb,
-            args=(179000, 200000, f"{CommonConstant.picOutputPath}/4"),
-            name="ForthThread-1",
-        )
-        t4.start()
-
+        # # 下载图片
+        # t3 = threading.Thread(
+        #     target=kcScrawlImpl.scrawPicUseApiAllLatest,
+        #     args=(201, 300, '2020-11-30 00:00:00'),
+        #     name="FirstThread-3",
+        # )
+        # t3.start()
+        #
+        # # 下载图片
+        # t4 = threading.Thread(
+        #     target=kcScrawlImpl.scrawPicUseApiAllLatest,
+        #     args=(301, 400, '2020-11-30 00:00:00'),
+        #     name="FirstThread-4",
+        # )
+        # t4.start()
     except Exception as e:
         print("start thread error.")
         print(e)

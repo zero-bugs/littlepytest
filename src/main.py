@@ -2,8 +2,7 @@
 # -*- coding: UTF-8 -*-
 import threading
 
-from common.common_config import CommonConstant
-from func.kc_scrawl import KcScrawlImpl, historyImgList
+from src.service.impl.kc_scrawl import KcScrawlImpl, historyImgList
 
 if __name__ == "__main__":
     # 第一阶段api提取数据

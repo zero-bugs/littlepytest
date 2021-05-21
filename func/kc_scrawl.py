@@ -105,22 +105,25 @@ class KcScrawlImpl:
         currentPage = start_page
         while currentPage < end_page:
             print(
-                "begin to scrawl, current page:%d"
-                % currentPage
+                "{}-begin with scrawl, current page:{}, total page".format(
+                    threading.current_thread().name, currentPage
+                )
             )
             val = self.scrawlPicUseApi(currentPage, 20, start_time)
             print(
-                "end with scrawl, current page:%d, total page"
-                % currentPage
+                "{}-end with scrawl, current page:{}, total page".format(
+                    threading.current_thread().name, currentPage
+                )
             )
             print("..")
-            time.sleep(1)
+            time.sleep(5)
             if val:
                 currentPage += 1
             else:
                 print(
-                    "done with all scrawl, current page:%d"
-                    % currentPage
+                    "{}-done with all scrawl, current page:{}".format(
+                        threading.current_thread().name, currentPage
+                    )
                 )
                 break
 
@@ -141,7 +144,7 @@ class KcScrawlImpl:
         filename = f"{downloadPath}/{pic.id}{suffix}"
         if f"{pic.id}{suffix}" in historyImgList or os.path.exists(filename):
             print("file id:{0} has exist".format(pic.id))
-            return True
+            return False
 
         print(
             "{}-begin to download,id:{},name:{},time:{},url:{}".format(
@@ -164,7 +167,7 @@ class KcScrawlImpl:
         if response is None:
             return False
 
-        with open(filename, "wb") as f:
+        with open(filename, "xb") as f:
             f.write(response.content)
         print(
             "{}-end to write,id:{},time:{},path:{}".format(

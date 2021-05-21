@@ -17,7 +17,7 @@ if __name__ == "__main__":
         # 下载图片
         t1 = threading.Thread(
             target=kcScrawlImpl.scrawPicUseApiAllLatest,
-            args=(1, 100, '2021-04-10 00:00:00'),
+            args=(1, 20, '2021-05-10 00:00:00'),
             name="FirstThread-1",
         )
         t1.start()
@@ -25,18 +25,18 @@ if __name__ == "__main__":
         # 下载图片
         t2 = threading.Thread(
             target=kcScrawlImpl.scrawPicUseApiAllLatest,
-            args=(101, 200, '2021-04-10 00:00:00'),
+            args=(21, 40, '2021-05-10 00:00:00'),
             name="FirstThread-2",
         )
         t2.start()
 
-        # # 下载图片
-        # t3 = threading.Thread(
-        #     target=kcScrawlImpl.scrawPicUseApiAllLatest,
-        #     args=(201, 300, '2020-11-30 00:00:00'),
-        #     name="FirstThread-3",
-        # )
-        # t3.start()
+        # 下载图片
+        t3 = threading.Thread(
+            target=kcScrawlImpl.scrawPicUseApiAllLatest,
+            args=(41, 60, '2021-05-10 00:00:00'),
+            name="FirstThread-3",
+        )
+        t3.start()
         #
         # # 下载图片
         # t4 = threading.Thread(

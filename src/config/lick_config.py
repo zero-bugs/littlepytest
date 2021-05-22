@@ -12,13 +12,13 @@ class LickConfig:
         "kch": {
         },
         "yd": {
-            "login": "singleman",
-            "password_hash": "04pz5oT1l2g-FQgd2TAsqA"
+            "login": "",
+            "password_hash": ""
         },
         "wp": {
-            "username": "singleman",
-            "password": "xxxx",
-            "api_key": "DBQVNwjRpoVJCv4PfjW1QfxeUhEDP6Qj",
+            "username": "",
+            "password": "",
+            "api_key": "",
             "category_type_db": ['anime', 'general', 'people'],
             "category_map": {'anime': '100', 'general': '010', 'people': '001'},
             "purity_type_db": ['sfw', 'sketchy', 'nsfw'],

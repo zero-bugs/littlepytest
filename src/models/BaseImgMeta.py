@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
-
+from datetime import datetime
+from src.config.common_config import CommonConstant
 
 class BaseImgMeta:
     """image attribute"""
@@ -15,7 +16,7 @@ class BaseImgMeta:
         self.tags = ""
         self.md5 = ""
         self.score = 0
-        self.create_at = ""
+        self.create_at = datetime.now().strftime(CommonConstant.time_format)
         self.author = ""
         self.creator_id = ""
         self.img_source = ""

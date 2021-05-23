@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
-from src.models.BaseImgMeta import BaseImgMeta
+from src.models.base_img_meta import BaseImgMeta
 
 
 class KNCPicImgMeta(BaseImgMeta):
@@ -8,4 +8,3 @@ class KNCPicImgMeta(BaseImgMeta):
 
     def __init__(self):
         super().__init__()
-

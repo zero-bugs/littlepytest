@@ -2,48 +2,34 @@
 # -*- coding: UTF-8 -*-
 import threading
 
-from src.service.impl.kc_scrawl import KcScrawlImpl, historyImgList
+from src.service.impl.scrawl_service import ScrawlServiceImpl
 
 if __name__ == "__main__":
     # 第一阶段api提取数据
-    kcScrawlImpl = KcScrawlImpl()
-    kcScrawlImpl.init()
-    # kcScrawlImpl.scrawPicUseApiAll()
-
-    print(len(historyImgList))
+    service = ScrawlServiceImpl()
 
     try:
         # 下载图片
         t1 = threading.Thread(
-            target=kcScrawlImpl.scrawPicUseApiAllLatest,
-            args=(1, 20, '2021-05-10 00:00:00'),
+            target=service.scrawlPicUseApiAll,
+            args=(1, 200, 500, "date:..2021-05-23"),
             name="FirstThread-1",
         )
         t1.start()
 
-        # 下载图片
         t2 = threading.Thread(
-            target=kcScrawlImpl.scrawPicUseApiAllLatest,
-            args=(21, 40, '2021-05-10 00:00:00'),
+            target=service.scrawlPicUseApiAll,
+            args=(200, 400, 500, "date:..2021-05-23"),
             name="FirstThread-2",
         )
         t2.start()
 
-        # 下载图片
         t3 = threading.Thread(
-            target=kcScrawlImpl.scrawPicUseApiAllLatest,
-            args=(41, 60, '2021-05-10 00:00:00'),
-            name="FirstThread-3",
+            target=service.scrawlPicUseApiAll,
+            args=(400, 600, 500, "date:..2021-05-23"),
+            name="FirstThread-2",
         )
         t3.start()
-        #
-        # # 下载图片
-        # t4 = threading.Thread(
-        #     target=kcScrawlImpl.scrawPicUseApiAllLatest,
-        #     args=(301, 400, '2020-11-30 00:00:00'),
-        #     name="FirstThread-4",
-        # )
-        # t4.start()
     except Exception as e:
         print("start thread error.")
         print(e)

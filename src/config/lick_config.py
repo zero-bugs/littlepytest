@@ -3,25 +3,34 @@
 """
 基本配置文件
 """
+from src.config.common_config import CommonConstant
 
 
 class LickConfig:
-    lickType = 'yd'
+    # "kch","yd", "wh"
+    lickType = "yd"
 
     extConfig = {
-        "kch": {
-        },
-        "yd": {
+        CommonConstant.kchType: {
             "login": "",
-            "password_hash": ""
+            "password_hash": "",
+            "rating": ["safe", "questionable", "explicit"],
+            "ext_param": {"rating": ["safe", "questionable", "explicit"]},
         },
-        "wp": {
+        CommonConstant.ydType: {
+            "login": "",
+            "password_hash": "",
+            "ext_param": {"rating": ["safe", "questionable", "explicit"]},
+        },
+        CommonConstant.whType: {
             "username": "",
             "password": "",
             "api_key": "",
-            "category_type_db": ['anime', 'general', 'people'],
-            "category_map": {'anime': '100', 'general': '010', 'people': '001'},
-            "purity_type_db": ['sfw', 'sketchy', 'nsfw'],
-            "purity_map": {'sfw': '100', 'sketchy': '010', 'nsfw': '001'},
-        }
+            "ext_param": {
+                "category": ["anime", "general", "people"],
+                "category_map": {"anime": "100", "general": "010", "people": "001"},
+                "rating": ["sfw", "sketchy", "nsfw"],
+                "rating_map": {"sfw": "100", "sketchy": "010", "nsfw": "001"},
+            },
+        },
     }

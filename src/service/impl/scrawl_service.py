@@ -1,338 +1,87 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
-import datetime
-import json
-import os
 import time
-import requests
 
-from src.config.common_config import CommonConstant
-from src.config.lick_config import LickConfig
-
-from src.config.proxy_config import ProxyConstant
-from src.dao.sq_connection import sqliteManager
 from src.logs.log_utils import LogUtils
-from src.models.BaseImgMeta import BaseImgMeta
-
-historyImgList = list()
-
-
-def currentTimeStdFmt():
-    return time.strftime(CommonConstant.time_format, time.localtime())
-
-
-def getUrlAddress():
-    return CommonConstant.basicConfig[LickConfig.lickType].get("sourceAddress")[0]
+from src.service.impl.scrawl_func import BaseService
 
 
 class ScrawlServiceImpl:
-    def init(self):
-        historyFile = CommonConstant.basicConfig[LickConfig.lickType].get(
-            "exportHisList"
+    @staticmethod
+    def scrawlPicUseApiAllLatest(startPage=1, endPage=1000, limit=10, tags=None):
+        """
+        对外主要API接口，获取最新图片
+        :param startPage:
+        :param endPage:
+        :param limit:
+        :param tags:
+        :return:
+        """
+        LogUtils.log(
+            f"begin to scrawl latest image, start page:{startPage}, end page:{endPage}, limit:{limit}, tags:{tags}"
         )
-        if os.path.exists(historyFile):
-            with open(historyFile) as f:
-                for line in f.readlines():
-                    historyImgList.append(line.strip())
-        LogUtils.log(f"init completed, history file count: {len(historyImgList)}")
-
-    def scrawlPicUseApi(self, page=1, limit=100):
-        """
-        首次抓取所有图片存到数据库中
-        :param page:页码，第1页不加入url中
-        :param limit:单页数量
-        :return:
-        """
-        url = self.getPostUrl(LickConfig.lickType, limit, page)
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": getUrlAddress(),
-        }
-
-        LogUtils.log(f"begin to request all images totally, url:{url}")
-
-        resp = self.httpRetryExecutor(url, headers)
-        if resp is None:
-            print("response is none, url:%s" % url)
-            return False
-        elif resp.status_code != 200:
-            print("url:%s,status code:%d" % (url, resp.status_code))
-            return False
-
-        imgs = list()
-        for p in json.loads(resp.content):
-            img = self.constructRemoteImg(p)
-            imgs.append(img)
-        else:
-            sqliteManager.batchInsertImg(imgs)
-
-    def scrawlPicUseApiLatest(self, page=1, limit=100, start_time=None):
-        """
-        首次抓取所有图片存到数据库中
-        :param page:页码
-        :param limit:单页数量
-        :param start_time:开始时间
-        :return:
-        """
-        url = self.getPostUrl(LickConfig.lickType, limit, page)
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": getUrlAddress(),
-        }
-
-        LogUtils.log(f"begin to request latest iamges from some time, url:{url}")
-
-        resp = self.httpRetryExecutor(url, headers)
-        if resp is None:
-            print("response is none, url:%s" % url)
-            return False
-        elif resp.status_code != 200:
-            print("url:%s,status code:%d" % (url, resp.status_code))
-            return False
-
-        if start_time is None:
-            start_time = datetime.datetime.strptime(
-                "1970-01-01 00:00:00", CommonConstant.time_format
+        currentPage = startPage
+        service = BaseService()
+        while currentPage <= endPage:
+            LogUtils.log(
+                f"begin with scrawl, current page:{currentPage}, end page:{endPage}, limit:{limit}, tags:{tags}"
             )
-        else:
-            start_time = datetime.datetime.strptime(
-                start_time, CommonConstant.time_format
-            )
-
-        imgs = list()
-        itemNumsAll = 0
-        itemNumsNoNeedDld = 0
-        for p in json.loads(resp.content):
-            itemNumsAll += 1
-            img = self.constructRemoteImg(p)
-            if datetime.datetime.fromtimestamp(p.get("created_at")) > start_time:
-                if self.downloadOnePic(img):
-                    imgs.append(img)
-                else:
-                    LogUtils.log(f"pic:{img.file_url} download failed.")
+            val = service.scrawlPicUseApiLatest(currentPage, limit, tags)
+            LogUtils.log(f"end with scrawl, current page:{currentPage}, end page:{endPage}, limit:{limit}, tags:{tags}")
+            print("...")
+            time.sleep(1)
+            if isinstance(val, list) and len(val) == 2:
+                LogUtils.log(f"done with all scrawl, current page:{currentPage}")
+                break
             else:
-                itemNumsNoNeedDld += 1
-        else:
-            if not sqliteManager.batchInsertImg(imgs):
-                LogUtils.log("batch insert images failed.")
-                return False
+                currentPage += 1
+        LogUtils.log(f"All task done, current page:{currentPage}, end page:{endPage}, tags:{tags}")
 
-        if itemNumsAll == itemNumsNoNeedDld:
-            LogUtils.log("all task done...")
-            return True
-        return False
-
-    def constructRemoteImg(self, imgDbObj, lickType=LickConfig.lickType):
-        img = BaseImgMeta()
-        img.img_id = imgDbObj.get("id")
-        img.file_size = imgDbObj.get("file_size")
-
-        if lickType == "kch" or lickType == "yd":
-            img.width = imgDbObj.get("width")
-            img.height = imgDbObj.get("height")
-            img.file_url = imgDbObj.get("file_url")
-            img.file_ext = imgDbObj.get("file_url").split(".")[-1]
-            img.tags = imgDbObj.get("tags")
-            img.md5 = imgDbObj.get("md5")
-            img.score = imgDbObj.get("score")
-            img.author = imgDbObj.get("author")
-            img.creator_id = imgDbObj.get("creator_id")
-            img.img_source = imgDbObj.get("source")
-            img.create_at = datetime.datetime.fromtimestamp(imgDbObj.get("created_at")).strftime(
-                CommonConstant.time_format)
-        elif lickType == "wp":
-            img.width = imgDbObj.get("dimension_x")
-            img.height = imgDbObj.get("dimension_y")
-            img.file_url = imgDbObj.get("path")
-            img.file_ext = imgDbObj.get("path").split(".")[-1]
-            img.score = imgDbObj.get("favorites")
-            img.create_at = datetime.datetime.strptime(
-                imgDbObj.get("created_at"), CommonConstant.time_format
-            )
-        else:
-            LogUtils.log(f"don't support this type:{lickType} for now..")
-
-        return img
-
-    def getPostUrl(self, lickType, limit, page):
-        url = "{}/post.json?limit={}".format(
-            getUrlAddress(),
-            limit,
-        )
-        if lickType == "kch":
-            url = url
-        elif lickType == "yd":
-            url = "{}&login={}&password_hash={}".format(
-                url,
-                LickConfig.extConfig[LickConfig.lickType].get("login"),
-                LickConfig.extConfig[LickConfig.lickType].get("password_hash"),
-            )
-        elif lickType == "wp":
-            url = "{}/api/v1/search?apikey={}&limit={}".format(
-                getUrlAddress(),
-                LickConfig.extConfig[LickConfig.lickType].get("api_key"),
-                limit,
-            )
-        else:
-            LogUtils.log(f"don't support this type:{lickType} for now..")
-
-        if page > 1:
-            url = "{}&page={}".format(url, page)
-        return url
-
-    def httpRetryExecutor(self, url, headers: dict):
-        retry = False
-        for num in range(0, 5):
-            if retry:
-                print("retry url:%s" % url)
-            try:
-                if ProxyConstant.proxySwitch:
-                    return requests.get(
-                        url,
-                        proxies=ProxyConstant.proxies,
-                        verify=True,
-                        timeout=300,
-                        headers=headers,
-                    )
-                else:
-                    return requests.get(url, verify=True, timeout=300)
-            except Exception as err:
-                print("http request failed, retry url:" + url)
-                print(err)
-
-                time.sleep(5)
-
-                retry = True
-                if num == 4:
-                    print("failed at last, please try by hands.")
-                    return None
-
-    def downloadOnePic(self, img: BaseImgMeta):
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": "https://konachan.com/post",
-        }
-        # check dir
-        downloadPath = CommonConstant.basicConfig[LickConfig.lickType].get(
-            "picOutputPath"
-        )
-        if not os.path.exists(downloadPath):
-            os.mkdir(downloadPath)
-
-        suffix = f".{img.file_ext}"
-        filename = f"{downloadPath}/{img.img_id}{suffix}"
-        if f"{img.img_id}{suffix}" in historyImgList or os.path.exists(filename):
-            print("file id:{} has exist".format(img.img_id))
-            return False
-
-        LogUtils.log(
-            f"id:{img.img_id},name:{filename},time:{currentTimeStdFmt()},url:{img.file_url} "
-        )
-
-        response = self.httpRetryExecutor(img.file_url, headers)
-
-        LogUtils.log(
-            f"begin to write,id:{img.img_id}, time:{currentTimeStdFmt()},path:{filename}"
-        )
-
-        if response is None:
-            return False
-
-        with open(filename, "xb") as f:
-            f.write(response.content)
-
-        LogUtils.log(
-            f"end to write,id:{img.img_id},time:{currentTimeStdFmt()},path:{filename} "
-        )
-
-        return True
-
-    def downloadPicFromDb(self, subDir=None, start=0, limit=100, maxCount=10000):
+    @staticmethod
+    def scrawlPicUseApiAll(startPage=1, endPage=1000, limit=200, tags=None):
         """
-        从数据检索图片，并全量下载
-        @param subDir:
-        @param start:
-        @param limit:
-        @param maxCount:
-        @return:
+        对外主要API接口，首次获取所有图片数据并存入数据库
+        :param startPage:
+        :param endPage:
+        :param limit:
+        :param tags:
+        :return:
         """
-        # check download path, may create it.
-        downloadPath = CommonConstant.basicConfig[LickConfig.lickType].get(
-            "picOutputPath"
-        )
-        if subDir is not None:
-            downloadPath = f"{downloadPath}/{subDir}"
-        if not os.path.exists(downloadPath):
-            os.mkdir(downloadPath)
+        currentPage = startPage
+        service = BaseService()
+        while currentPage <= endPage:
+            LogUtils.log(
+                f"begin with scrawl, current page:{currentPage}, end page:{endPage}, limit:{limit}, tags:{tags}"
+            )
+            val = service.scrawlPicUseApi(currentPage, limit, tags)
+            LogUtils.log(f"end with scrawl, current page:{currentPage}, end page:{endPage}, limit:{limit}, tags:{tags}")
+            print("...")
+            time.sleep(5)
+            if isinstance(val, list) and len(val) == 2:
+                LogUtils.log(f"done with all scrawl, current page:{currentPage}")
+                break
+            else:
+                currentPage += 1
+        LogUtils.log(f"all task done, current page:{currentPage}, end page:{endPage}")
 
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": getUrlAddress(),
-        }
-
-        offset = start
+    @staticmethod
+    def downloadImagesUseLocalDb(startPage=0, endPage=100, limit=100, subDir=None):
+        """
+        对外主要API接口，使用本地数据库中的数据下载图片
+        :param startPage:
+        :param endPage:
+        :param limit:
+        :param subDir:
+        :return:
+        """
+        service = BaseService()
+        offset = startPage
         while True:
-            if offset >= maxCount:
+            if offset > endPage:
                 LogUtils.log(f"done all task {offset}")
                 break
 
-            val = sqliteManager.selectImgs(limit=limit, offset=offset)
-            if val is None or len(val) == 0:
-                LogUtils.log(
-                    f"download by db data complete, offset:{offset}, start:{start}"
-                )
-                break
-            else:
-                LogUtils.log(f"begin to batch download, offset:{offset}, start:{start}")
-                for pic in val:
-                    suffix = f".{pic.file_ext}"
-                    filename = f"{downloadPath}/{pic.img_id}{suffix}"
-                    if f"{pic.img_id}{suffix}" in historyImgList or os.path.exists(
-                            filename
-                    ):
-                        continue
+            service.downloadPicFromDb(subDir, offset, limit)
 
-                    LogUtils.log(
-                        f"begin to download,id:{pic.img_id},name:{filename},time:{currentTimeStdFmt()},url:{pic.file_url}"
-                    )
-
-                    response = self.httpRetryExecutor(pic.file_url, headers)
-                    if response is None or response.status_code >= 300:
-                        LogUtils.log(f"download pic:{filename} failed.")
-                        continue
-
-                    LogUtils.log(
-                        f"begin to write,id:{pic.img_id}, time:{currentTimeStdFmt()},path:{filename}"
-                    )
-                    with open(filename, "wb") as f:
-                        f.write(response.content)
-                    LogUtils.log(
-                        f"id:{pic.img_id},time:{currentTimeStdFmt()},path:{filename}"
-                    )
             # 更新下一次数据
             offset += limit
-
-    def scrawlPicUseApiAllLatest(self, start_page=1, end_page=1000, start_time=None):
-        """
-        对外主要函数
-        @param start_page:
-        @param end_page:
-        @param start_time:
-        @return:
-        """
-        currentPage = start_page
-        while currentPage < end_page:
-            LogUtils.log(f"begin with scrawl, current page:{currentPage}, total page")
-            val = self.scrawlPicUseApi(currentPage, currentPage)
-            LogUtils.log(f"end with scrawl, current page:{currentPage}, total page")
-            print("...")
-            time.sleep(5)
-            if val:
-                currentPage += 1
-            else:
-                LogUtils.log(f"done with all scrawl, current page:{currentPage}")
-                break

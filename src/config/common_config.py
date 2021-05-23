@@ -6,25 +6,29 @@
 
 
 class CommonConstant:
+    whType = "wh"
+    kchType = "kch"
+    ydType = "yd"
+
     basicConfig = {
-        "kch": {
-            "sourceAddress": ["https://konachan.com"],
+        kchType: {
+            "sourceAddress": [""],
             "dbLibPath": "./dao/konachan.dao",
-            "picOutputPath": "D://konachan",
-            "exportHisList": 'kch.filelist.history'
+            "picOutputPath": "",
+            "exportHisList": "kch.filelist.history",
         },
-        "yd": {
-            "sourceAddress": ["https://oreno.imouto.us", "https://yande.in"],
+        ydType: {
+            "sourceAddress": [""],
             "dbLibPath": "./dao/yande.dao",
-            "picOutputPath": "D://yande",
-            "exportHisList": 'yd.filelist.history'
+            "picOutputPath": "",
+            "exportHisList": "yd.filelist.history",
         },
-        "wp": {
-            "sourceAddress": ["https://wallhaven.cc"],
+        whType: {
+            "sourceAddress": [""],
             "dbLibPath": "./dao/wallpaper.dao",
-            "picOutputPath": "D://wallpaper",
-            "exportHisList": 'wp.filelist.history'
-        }
+            "picOutputPath": "",
+            "exportHisList": "wh.filelist.history",
+        },
     }
 
     """公共配置文件"""

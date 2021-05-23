@@ -7,7 +7,7 @@ import threading
 from src.config.common_config import CommonConstant
 from src.config.lick_config import LickConfig
 from src.logs.log_utils import LogUtils
-from src.models.BaseImgMeta import BaseImgMeta
+from src.models.base_img_meta import BaseImgMeta
 
 
 def mapImgToList(imgs: BaseImgMeta):
@@ -30,6 +30,7 @@ def mapImgToList(imgs: BaseImgMeta):
         cLst.append(img.author),
         cLst.append(img.creator_id),
         cLst.append(img.img_source),
+        cLst.append(img.rating),
         result.append(cLst)
     else:
         return result
@@ -63,7 +64,8 @@ class SqliteManager:
             "create_at datetime,"
             "author text,"
             "creator_id text,"
-            "img_source text)"
+            "img_source text,"
+            "rating text)"
         )
         self.cur.execute(sql)
 
@@ -84,8 +86,8 @@ class SqliteManager:
             lock.acquire(True)
             self.cur.execute(
                 "insert or ignore into tbl_img "
-                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source,rating) "
+                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     img.img_id,
                     img.width,
@@ -121,8 +123,8 @@ class SqliteManager:
             lock.acquire(True)
             self.cur.executemany(
                 "insert or ignore into tbl_img "
-                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source,rating) "
+                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 mapImgToList(imgs),
             )
             self.conn.commit()
@@ -196,6 +198,7 @@ class SqliteManager:
         img.author = val[10]
         img.creator_id = val[11]
         img.img_source = val[12]
+        img.rating = val[13]
         return img
 
     def close(self):

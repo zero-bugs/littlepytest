@@ -3,7 +3,7 @@
 from src.models.base_img_meta import BaseImgMeta
 
 
-class YDPicImgMeta(BaseImgMeta):
+class WHPicImgMeta(BaseImgMeta):
     """image attribute"""
 
     def __init__(self):

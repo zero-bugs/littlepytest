@@ -3,6 +3,7 @@
 from datetime import datetime
 from src.config.common_config import CommonConstant
 
+
 class BaseImgMeta:
     """image attribute"""
 
@@ -20,4 +21,4 @@ class BaseImgMeta:
         self.author = ""
         self.creator_id = ""
         self.img_source = ""
-
+        self.rating = ""

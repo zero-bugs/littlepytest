@@ -10,7 +10,7 @@ from src.logs.log_utils import LogUtils
 from src.models.base_img_meta import BaseImgMeta
 
 
-def mapImgToList(imgs: BaseImgMeta):
+def mapImgToList(imgs: list):
     if imgs is None:
         return list()
 
@@ -31,6 +31,9 @@ def mapImgToList(imgs: BaseImgMeta):
         cLst.append(img.creator_id),
         cLst.append(img.img_source),
         cLst.append(img.rating),
+        cLst.append(img.category),
+        cLst.append(img.reserved1),
+        cLst.append(img.reserved2),
         result.append(cLst)
     else:
         return result
@@ -52,7 +55,7 @@ class SqliteManager:
         # 创建数据表
         sql = (
             "create table if not exists "
-            "tbl_img(img_id VARCHAR(20) primary key not null ,"
+            "tbl_img(img_id VARCHAR(128) primary key not null ,"
             "width integer,"
             "height integer,"
             "file_size integer,"
@@ -65,7 +68,10 @@ class SqliteManager:
             "author text,"
             "creator_id text,"
             "img_source text,"
-            "rating text)"
+            "rating text,"
+            "category text,"
+            "reserved1 text,"
+            "reserved2 text)"
         )
         self.cur.execute(sql)
 
@@ -86,8 +92,8 @@ class SqliteManager:
             lock.acquire(True)
             self.cur.execute(
                 "insert or ignore into tbl_img "
-                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source,rating) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source,rating,category,reserved1,reserved2) "
+                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     img.img_id,
                     img.width,
@@ -102,6 +108,9 @@ class SqliteManager:
                     img.author,
                     img.creator_id,
                     img.img_source,
+                    img.category,
+                    img.reserved1,
+                    img.reserved2,
                 ),
             )
             self.conn.commit()
@@ -123,8 +132,8 @@ class SqliteManager:
             lock.acquire(True)
             self.cur.executemany(
                 "insert or ignore into tbl_img "
-                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source,rating) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "(img_id,width,height,file_size,file_url,file_ext,tags,md5,score,create_at,author,creator_id,img_source,rating,category,reserved1,reserved2) "
+                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 mapImgToList(imgs),
             )
             self.conn.commit()
@@ -136,20 +145,18 @@ class SqliteManager:
         finally:
             lock.release()
 
-    def selectImgs(self, limit=100, offset=0):
+    def selectImgs(self, rating=None, limit=100, offset=0):
         """
         查找指定个数的图片
         """
+        sql = "select * from tbl_img"
+        if rating is not None:
+            sql = f"{sql} where rating={rating}"
+        sql = f"{sql} limit {limit} offset {offset}"
         result = []
         try:
             lock.acquire(True)
-            self.cur.execute(
-                "select * from tbl_img limit ? offset ? ",
-                (
-                    limit,
-                    offset,
-                ),
-            )
+            self.cur.execute(sql,)
             values = self.cur.fetchall()
             if values is None:
                 return None
@@ -199,6 +206,9 @@ class SqliteManager:
         img.creator_id = val[11]
         img.img_source = val[12]
         img.rating = val[13]
+        img.category = val[14]
+        img.reserved1 = val[15]
+        img.reserved2 = val[16]
         return img
 
     def close(self):

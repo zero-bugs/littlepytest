@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 import time
+from random import random
 
 from src.logs.log_utils import LogUtils
 from src.service.impl.scrawl_func import BaseService
@@ -47,6 +48,7 @@ class ScrawlServiceImpl:
         :param tags:
         :return:
         """
+        time.sleep(random() * 5)
         currentPage = startPage
         service = BaseService()
         while currentPage <= endPage:
@@ -56,7 +58,7 @@ class ScrawlServiceImpl:
             val = service.scrawlPicUseApi(currentPage, limit, tags)
             LogUtils.log(f"end with scrawl, current page:{currentPage}, end page:{endPage}, limit:{limit}, tags:{tags}")
             print("...")
-            time.sleep(5)
+            time.sleep(6)
             if isinstance(val, list) and len(val) == 2:
                 LogUtils.log(f"done with all scrawl, current page:{currentPage}")
                 break
@@ -65,15 +67,17 @@ class ScrawlServiceImpl:
         LogUtils.log(f"all task done, current page:{currentPage}, end page:{endPage}")
 
     @staticmethod
-    def downloadImagesUseLocalDb(startPage=0, endPage=100, limit=100, subDir=None):
+    def downloadImagesUseLocalDb(startPage=0, endPage=100, limit=100, subDir=None, rating=None):
         """
         对外主要API接口，使用本地数据库中的数据下载图片
+        :param rating:
         :param startPage:
         :param endPage:
         :param limit:
         :param subDir:
         :return:
         """
+        time.sleep(random() * 5)
         service = BaseService()
         offset = startPage
         while True:
@@ -81,7 +85,8 @@ class ScrawlServiceImpl:
                 LogUtils.log(f"done all task {offset}")
                 break
 
-            service.downloadPicFromDb(subDir, offset, limit)
-
+            LogUtils.log(f"begin to download current page {offset}")
+            service.downloadPicFromDb(subDir, rating, offset, limit)
+            LogUtils.log(f"end to download current page {offset}")
             # 更新下一次数据
             offset += limit

@@ -22,3 +22,6 @@ class BaseImgMeta:
         self.creator_id = ""
         self.img_source = ""
         self.rating = ""
+        self.category = ""
+        self.reserved1 = ""
+        self.reserved2 = ""

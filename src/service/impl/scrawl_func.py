@@ -47,7 +47,7 @@ class BaseService:
         url = self.getPostUrl(LickConfig.lickType, limit, page, tags)
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/86.0.4240.198 Safari/537.36",
+                          "Chrome/86.0.4240.198 Safari/537.36",
             "referer": getUrlAddress(),
         }
 
@@ -55,10 +55,10 @@ class BaseService:
 
         resp = self.httpRetryExecutor(url, headers)
         if resp is None:
-            LogUtils.log("response is none, url:%s" % url)
+            LogUtils.log(f"response is none, url:{url}")
             return False
         elif resp.status_code != 200:
-            LogUtils.log("url:%s,status code:%d" % (url, resp.status_code))
+            LogUtils.log(f"url:{url},status code:{resp.status_code}")
             return False
 
         imgs = list()
@@ -92,7 +92,7 @@ class BaseService:
         url = self.getPostUrl(LickConfig.lickType, limit, page, tags)
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/86.0.4240.198 Safari/537.36",
+                          "Chrome/86.0.4240.198 Safari/537.36",
             "referer": getUrlAddress(),
         }
 
@@ -158,6 +158,7 @@ class BaseService:
                 CommonConstant.time_format
             )
             img.rating = imgDbObj.get("rating")
+            img.category = imgDbObj.get("status")
         elif lickType == CommonConstant.whType:
             img.width = imgDbObj.get("dimension_x")
             img.height = imgDbObj.get("dimension_y")
@@ -166,6 +167,7 @@ class BaseService:
             img.score = imgDbObj.get("favorites")
             img.create_at = datetime.datetime.strptime(imgDbObj.get("created_at"), CommonConstant.time_format)
             img.rating = imgDbObj.get("purity")
+            img.category = imgDbObj.get("category")
         else:
             LogUtils.log(f"don't support this type:{lickType} for now..")
 
@@ -203,7 +205,7 @@ class BaseService:
         retry = False
         for num in range(0, 5):
             if retry:
-                LogUtils.log("retry url:%s" % url)
+                LogUtils.log(f"retry url:{url}")
             try:
                 if ProxyConstant.proxySwitch:
                     return requests.get(
@@ -214,9 +216,15 @@ class BaseService:
                         headers=headers,
                     )
                 else:
-                    return requests.get(url, verify=True, timeout=300)
+                    resp = requests.get(url, verify=True, timeout=300)
+                    if resp is not None and resp.status_code >= 400:
+                        LogUtils.log(f"url:{url},status code:{resp.status_code}, need retry.")
+                        retry = True
+                        time.sleep(5)
+                    else:
+                        return resp
             except Exception as err:
-                LogUtils.log("http request failed, retry url:" + url)
+                LogUtils.log(f"http request failed, retry url:{url}")
                 LogUtils.log(err)
 
                 time.sleep(5)
@@ -229,7 +237,7 @@ class BaseService:
     def downloadOnePic(self, img: BaseImgMeta):
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/86.0.4240.198 Safari/537.36",
+                          "Chrome/86.0.4240.198 Safari/537.36",
             "referer": "https://konachan.com/post",
         }
         # check dir
@@ -259,12 +267,13 @@ class BaseService:
 
         return True
 
-    def downloadPicFromDb(self, subDir=None, offset=0, limit=100):
+    def downloadPicFromDb(self, subDir=None, rating=None, offset=0, limit=100):
         """
         从数据检索图片，并全量下载
         @param subDir:
         @param offset:
         @param limit:
+        @param rating:
         @return:
         """
         # check download path, may create it.
@@ -276,11 +285,11 @@ class BaseService:
 
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/86.0.4240.198 Safari/537.36",
+                          "Chrome/86.0.4240.198 Safari/537.36",
             "referer": getUrlAddress(),
         }
 
-        val = sqliteManager.selectImgs(limit=limit, offset=offset)
+        val = sqliteManager.selectImgs(rating=None, limit=limit, offset=offset)
         if val is None or len(val) == 0:
             LogUtils.log(f"download by db data complete, offset:{offset}, limit:{limit}")
             return True
@@ -288,7 +297,15 @@ class BaseService:
             LogUtils.log(f"begin to batch download, offset:{offset}, limit:{limit}")
             for pic in val:
                 suffix = f".{pic.file_ext}"
-                filename = f"{downloadPath}/{pic.img_id}{suffix}"
+                if LickConfig.lickType == CommonConstant.whType:
+                    path = f"{downloadPath}/{pic.category}/{pic.rating}"
+                else:
+                    path = f"{downloadPath}/{pic.rating}"
+
+                if not os.path.exists(path):
+                    os.mkdir(path)
+
+                filename = f"{path}/{pic.img_id}{suffix}"
                 if f"{pic.img_id}{suffix}" in historyImgList or os.path.exists(filename):
                     continue
 
@@ -305,3 +322,4 @@ class BaseService:
                 with open(filename, "wb") as f:
                     f.write(response.content)
                 LogUtils.log(f"id:{pic.img_id},time:{currentTimeStdFmt()},path:{filename}")
+                time.sleep(0.5)

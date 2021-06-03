@@ -4,25 +4,20 @@ import datetime
 import json
 import os
 import time
-import requests
 
 from src.config.common_config import CommonConstant
 from src.config.lick_config import LickConfig
 
-from src.config.proxy_config import ProxyConstant
 from src.dao.sq_connection import sqliteManager
 from src.logs.log_utils import LogUtils
 from src.models.base_img_meta import BaseImgMeta
+from src.utils.http_utils import getUrlAddress, commonHeaders, httpRetryExecutorWithRetry as httpRequest
 
 historyImgList = list()
 
 
 def currentTimeStdFmt():
     return time.strftime(CommonConstant.time_format, time.localtime())
-
-
-def getUrlAddress():
-    return CommonConstant.basicConfig[LickConfig.lickType].get("sourceAddress")[0]
 
 
 class BaseService:
@@ -44,16 +39,11 @@ class BaseService:
         :param tags 搜索条件
         :return:
         """
-        url = self.getPostUrl(LickConfig.lickType, limit, page, tags)
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": getUrlAddress(),
-        }
+        [url, extParam] = self.getPostUrl(LickConfig.lickType, limit, page, tags)
 
         LogUtils.log(f"begin to request all images totally, url:{url}")
 
-        resp = self.httpRetryExecutor(url, headers)
+        resp = httpRequest(url, extParam, commonHeaders, {})
         if resp is None:
             LogUtils.log(f"response is none, url:{url}")
             return False
@@ -89,16 +79,11 @@ class BaseService:
         :param startTime:startTime="2021-05-01 00:00:00"
         :return:
         """
-        url = self.getPostUrl(LickConfig.lickType, limit, page, tags)
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": getUrlAddress(),
-        }
+        [url, extParams] = self.getPostUrl(LickConfig.lickType, limit, page, tags)
 
-        LogUtils.log(f"begin to request latest iamges from some time, url:{url}")
+        LogUtils.log(f"begin to request latest images from some time, url:{url}")
 
-        resp = self.httpRetryExecutor(url, headers)
+        resp = httpRequest(url, extParams, commonHeaders, {})
         if resp is None:
             LogUtils.log("response is none, url:%s" % url)
             return False
@@ -173,73 +158,28 @@ class BaseService:
 
         return img
 
-    def getPostUrl(self, lickType, limit, page, tags=None):
-        url = "{}/post.json?limit={}".format(
-            getUrlAddress(),
-            limit,
-        )
+    def getPostUrl(self, lickType, limit, page, tags: dict):
+        url = f"{getUrlAddress()}"
+        extParams = {}
         if lickType == CommonConstant.kchType or lickType == CommonConstant.ydType:
-            url = "{}&login={}&password_hash={}".format(
-                url,
-                LickConfig.extConfig[LickConfig.lickType].get("login"),
-                LickConfig.extConfig[LickConfig.lickType].get("password_hash"),
-            )
-            if tags is not None:
-                url = "{}&tags={}".format(url, tags)
+            url = f"{url}/post.json"
+            extParams['login'] = LickConfig.extConfig[LickConfig.lickType].get("login")
+            extParams['password_hash'] = LickConfig.extConfig[LickConfig.lickType].get("password_hash")
         elif lickType == CommonConstant.whType:
-            url = "{}/api/v1/search?apikey={}&limit={}".format(
-                getUrlAddress(),
-                LickConfig.extConfig[LickConfig.lickType].get("api_key"),
-                limit,
-            )
-            if tags is not None:
-                url = "{}&{}".format(url, tags)
+            url = f"{url}/api/v1/search"
+            extParams['apikey'] = LickConfig.extConfig[LickConfig.lickType].get("api_key")
         else:
             LogUtils.log(f"don't support this type:{lickType} for now..")
 
+        if tags is not None:
+            extParams.update(tags)
+
         if page > 1:
-            url = "{}&page={}".format(url, page)
-        return url
-
-    def httpRetryExecutor(self, url, headers: dict):
-        retry = False
-        for num in range(0, 5):
-            if retry:
-                LogUtils.log(f"retry url:{url}")
-            try:
-                if ProxyConstant.proxySwitch:
-                    return requests.get(
-                        url,
-                        proxies=ProxyConstant.proxies,
-                        verify=True,
-                        timeout=300,
-                        headers=headers,
-                    )
-                else:
-                    resp = requests.get(url, verify=True, timeout=300)
-                    if resp is not None and resp.status_code >= 400:
-                        LogUtils.log(f"url:{url},status code:{resp.status_code}, need retry.")
-                        retry = True
-                        time.sleep(5)
-                    else:
-                        return resp
-            except Exception as err:
-                LogUtils.log(f"http request failed, retry url:{url}")
-                LogUtils.log(err)
-
-                time.sleep(5)
-
-                retry = True
-                if num == 4:
-                    LogUtils.log("failed at last, please try by hands.")
-                    return None
+            extParams['page'] = page
+        extParams['limit'] = limit
+        return [url, extParams]
 
     def downloadOnePic(self, img: BaseImgMeta):
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": "https://konachan.com/post",
-        }
         # check dir
         downloadPath = CommonConstant.basicConfig[LickConfig.lickType].get("picOutputPath")
         if not os.path.exists(downloadPath):
@@ -253,7 +193,7 @@ class BaseService:
 
         LogUtils.log(f"id:{img.img_id},name:{filename},time:{currentTimeStdFmt()},url:{img.file_url} ")
 
-        response = self.httpRetryExecutor(img.file_url, headers)
+        response = httpRequest(img.file_url, {}, commonHeaders, {})
 
         LogUtils.log(f"begin to write,id:{img.img_id}, time:{currentTimeStdFmt()},path:{filename}")
 
@@ -283,43 +223,38 @@ class BaseService:
         if not os.path.exists(downloadPath):
             os.mkdir(downloadPath)
 
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/86.0.4240.198 Safari/537.36",
-            "referer": getUrlAddress(),
-        }
-
         val = sqliteManager.selectImgs(rating=None, limit=limit, offset=offset)
         if val is None or len(val) == 0:
             LogUtils.log(f"download by db data complete, offset:{offset}, limit:{limit}")
             return True
-        else:
-            LogUtils.log(f"begin to batch download, offset:{offset}, limit:{limit}")
-            for pic in val:
-                suffix = f".{pic.file_ext}"
-                if LickConfig.lickType == CommonConstant.whType:
-                    path = f"{downloadPath}/{pic.category}/{pic.rating}"
-                else:
-                    path = f"{downloadPath}/{pic.rating}"
 
-                if not os.path.exists(path):
-                    os.mkdir(path)
+        LogUtils.log(f"begin to batch download, offset:{offset}, limit:{limit}")
+        for pic in val:
+            suffix = f".{pic.file_ext}"
+            if LickConfig.lickType == CommonConstant.whType:
+                path = f"{downloadPath}/{pic.category}/{pic.rating}"
+            else:
+                path = f"{downloadPath}/{pic.rating}"
 
-                filename = f"{path}/{pic.img_id}{suffix}"
-                if f"{pic.img_id}{suffix}" in historyImgList or os.path.exists(filename):
-                    continue
+            if not os.path.exists(path):
+                os.mkdir(path)
 
-                LogUtils.log(
-                    f"begin to download,id:{pic.img_id},name:{filename},time:{currentTimeStdFmt()},url:{pic.file_url}"
-                )
+            filename = f"{path}/{pic.img_id}{suffix}"
+            if f"{pic.img_id}{suffix}" in historyImgList or os.path.exists(filename):
+                continue
 
-                response = self.httpRetryExecutor(pic.file_url, headers)
-                if response is None or response.status_code >= 300:
-                    LogUtils.log(f"download pic:{filename} failed.")
-                    continue
+            LogUtils.log(
+                f"begin to download,id:{pic.img_id},name:{filename},time:{currentTimeStdFmt()},url:{pic.file_url}"
+            )
 
-                LogUtils.log(f"begin to write,id:{pic.img_id}, time:{currentTimeStdFmt()},path:{filename}")
-                with open(filename, "wb") as f:
-                    f.write(response.content)
-                LogUtils.log(f"id:{pic.img_id},time:{currentTimeStdFmt()},path:{filename}")
-                time.sleep(0.5)
+            response = httpRequest(pic.file_url, {}, commonHeaders, {})
+            if response is None or response.status_code >= 300:
+                LogUtils.log(f"download pic:{filename} failed.")
+                continue
+
+            LogUtils.log(f"begin to write,id:{pic.img_id}, time:{currentTimeStdFmt()},path:{filename}")
+            with open(filename, "wb") as f:
+                f.write(response.content)
+            LogUtils.log(f"id:{pic.img_id},time:{currentTimeStdFmt()},path:{filename}")
+            time.sleep(0.5)
+            return False

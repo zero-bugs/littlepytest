@@ -58,7 +58,7 @@ class ScrawlServiceImpl:
             val = service.scrawlPicUseApi(currentPage, limit, tags)
             LogUtils.log(f"end with scrawl, current page:{currentPage}, end page:{endPage}, limit:{limit}, tags:{tags}")
             print("...")
-            time.sleep(6)
+            time.sleep(5)
             if isinstance(val, list) and len(val) == 2:
                 LogUtils.log(f"done with all scrawl, current page:{currentPage}")
                 break
@@ -86,7 +86,10 @@ class ScrawlServiceImpl:
                 break
 
             LogUtils.log(f"begin to download current page {offset}")
-            service.downloadPicFromDb(subDir, rating, offset, limit)
+            if service.downloadPicFromDb(subDir, rating, offset, limit):
+                LogUtils.log("all task done...")
+                break
+
             LogUtils.log(f"end to download current page {offset}")
             # 更新下一次数据
             offset += limit

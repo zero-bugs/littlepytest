@@ -223,7 +223,7 @@ class BaseService:
         if not os.path.exists(downloadPath):
             os.mkdir(downloadPath)
 
-        val = sqliteManager.selectImgs(rating=None, limit=limit, offset=offset)
+        val = sqliteManager.selectImgs(rating=rating, limit=limit, offset=offset)
         if val is None or len(val) == 0:
             LogUtils.log(f"download by db data complete, offset:{offset}, limit:{limit}")
             return True

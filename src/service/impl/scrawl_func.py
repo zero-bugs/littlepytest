@@ -257,4 +257,5 @@ class BaseService:
                 f.write(response.content)
             LogUtils.log(f"id:{pic.img_id},time:{currentTimeStdFmt()},path:{filename}")
             time.sleep(0.5)
+        else:
             return False

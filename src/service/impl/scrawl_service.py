@@ -79,17 +79,18 @@ class ScrawlServiceImpl:
         """
         time.sleep(random() * 5)
         service = BaseService()
-        offset = startPage
+        offset = startPage * limit
         while True:
-            if offset > endPage:
-                LogUtils.log(f"done all task {offset}")
+            if startPage > endPage:
+                LogUtils.log(f"done all task, current page:{startPage}, end page:{endPage}, offset:{offset}")
                 break
 
-            LogUtils.log(f"begin to download current page {offset}")
+            LogUtils.log(f"begin to download, current page:{startPage}, end page:{endPage}, offset:{offset}")
             if service.downloadPicFromDb(subDir, rating, offset, limit):
-                LogUtils.log("all task done...")
+                LogUtils.log(f"db is empty, done, current page:{startPage}, end page:{endPage}, offset:{offset}")
                 break
 
-            LogUtils.log(f"end to download current page {offset}")
+            LogUtils.log(f"end to download, current page:{startPage}, end page:{endPage}, offset:{offset}")
             # 更新下一次数据
             offset += limit
+            startPage += 1

@@ -17,8 +17,8 @@ def getUrlHost():
 
 
 commonHeaders = {
-    "Host": getUrlHost(),
-    "Referer": getUrlAddress(),
+    # "Host": getUrlHost(),
+    # "Referer": getUrlAddress(),
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW 64) AppleWebKit/537.36 (KHTML, like Gecko) "
                   "Chrome/55.0.2883.87 Safari/537.36 QIHU 360SE ",
 }
